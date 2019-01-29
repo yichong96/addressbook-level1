@@ -10,6 +10,7 @@ package seedu.addressbook;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
@@ -446,12 +447,21 @@ public class AddressBook {
      * Finds and lists all persons in address book whose name contains any of the argument keywords.
      * Keyword matching is case sensitive.
      *
+     * Also finds all argument keywords that are substrings of the persons name in the address book.
+     *
      * @param commandArgs full command args string from the user
      * @return feedback display message for the operation result
      */
     private static String executeFindPersons(String commandArgs) {
         final Set<String> keywords = extractKeywordsFromFindPersonArgs(commandArgs);
         final ArrayList<String[]> personsFound = getPersonsWithNameContainingAnyKeyword(keywords);
+        if (personsFound.isEmpty()) {
+            final ArrayList<String[]> similarPersons = getPersonWithNameContaingAnySubstring(keywords);
+            if (!similarPersons.isEmpty()) {
+                showToUser("Did you mean....");
+                showToUser(similarPersons);
+            }
+        }
         showToUser(personsFound);
         return getMessageForPersonsDisplayedSummary(personsFound);
     }
@@ -491,6 +501,41 @@ public class AddressBook {
             }
         }
         return matchedPersons;
+    }
+
+    /**
+     * Retrieves all persons in the address book whose keywords are substrings of their names
+     *
+     * @param keywords for searching
+     * @return list of person whose keywords are substrings of their name
+     */
+    private static ArrayList<String[]> getPersonWithNameContaingAnySubstring(Collection<String> keywords) {
+        final ArrayList<String[]> matchedPersons = new ArrayList<>();
+        for (String[] person : getAllPersonsInAddressBook()) {
+            final Set<String> wordsInName = new HashSet<>(splitByWhitespace(getNameFromPerson(person)));
+            if (containsSubstring(wordsInName, keywords)) {
+                matchedPersons.add(person);
+            }
+        }
+        return matchedPersons;
+    }
+
+
+    /**
+     * Helper function that serves to find substrings of keywords within the given names of people in the address book
+     * @param wordsInName names of people in the address book
+     * @param keywords check if keywords are substrings of people's names in the address book
+     * @return whether the corresponding name has keywords in its substring
+     */
+    private static boolean containsSubstring(Set<String> wordsInName, Collection<String> keywords) {
+        for (String keyword : keywords) {
+            for (String word : wordsInName) {
+                if (word.contains(keyword)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**
